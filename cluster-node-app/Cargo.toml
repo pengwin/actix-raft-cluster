@@ -1,0 +1,33 @@
+[package]
+name = "cluster-node-app"
+version = "0.1.0"
+authors = ["Ivan <ikruchkov0@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clippy = { version = "0.0.*", optional = true }
+
+log = { version = "0.4.14", features = ["max_level_debug", "release_max_level_info"] }
+tracing = { version = "0.1", features = ["max_level_debug", "release_max_level_info"] }
+tracing-futures = "0.2.4"
+tracing-subscriber = { version = "0.2.17", features = ["json", "chrono"] }
+
+tracing-opentelemetry = "0.12.0"
+opentelemetry = { version = "0.13", default-features = false, features = ["trace"] }
+opentelemetry-jaeger = "0.12"
+
+structopt = "0.3.21"
+
+tokio = { version = "1.4.0" }
+async-trait = "0.1.48"
+
+actix-rt = "2.2.0"
+
+cluster-node = { path = "../cluster-node" }
+
+#[dependencies.rocksdb]
+#version = "0.15.0"
+#default-features = false
+#features = ["lz4"]

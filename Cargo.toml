@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "cluster-node",
+    "cluster-node-app",
+    "remote-actor",
+    "remote-actor-server",
+    "actor-registry",
+    "node-actor",
+    "node-actor-server"
+]

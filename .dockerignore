@@ -1,0 +1,7 @@
+﻿target/
+./data/
+.git/
+.idea/
+Dockerfile
+.gitignore
+.dockerignore

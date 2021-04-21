@@ -1,0 +1,17 @@
+[package]
+name = "node-actor-server"
+version = "0.1.0"
+authors = ["Ivan <ikruchkov0@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tracing = "0.1.25"
+
+actix-web = { version = "4.0.0-beta.5" }
+
+node-actor = { path = "../node-actor" }
+remote-actor = { path = "../remote-actor" }
+remote-actor-server = { path = "../remote-actor-server" }
+actor-registry = { path = "../actor-registry" }

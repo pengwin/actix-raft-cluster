@@ -8,7 +8,6 @@ pub async fn attach_to_leader(
     leader_node: &RemoteNodeConfig,
     this_node: &RemoteNodeConfig,
 ) -> Result<bool, AttachError> {
-    let this_node = this_node.clone();
 
     let addr = leader_node.addr().clone();
     let remote_leader = RemoteNodeActorAddr::new(leader_node.node_id, addr.clone());

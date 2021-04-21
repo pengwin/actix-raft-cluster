@@ -12,6 +12,8 @@ use super::attach_to_leader::attach_to_leader;
 use crate::node::error::NodeError;
 use std::sync::Arc;
 
+/// Cluster Node
+/// Starts server, actor system and creates nodes registry
 pub struct ClusterNode {
     srv: Server,
     system: System,
@@ -20,6 +22,7 @@ pub struct ClusterNode {
 }
 
 impl ClusterNode {
+    /// Creates new node with provided config
     #[tracing::instrument]
     pub fn new(config: Arc<NodeConfig>) -> Result<ClusterNode, NodeError> {
         if !actix_rt::System::is_registered() {
@@ -66,6 +69,7 @@ impl ClusterNode {
         })
     }
 
+    /// Runs node
     #[tracing::instrument(skip(self))]
     pub async fn run(&self) -> Result<(), NodeError> {
         let srv = self.srv.clone();
@@ -74,6 +78,7 @@ impl ClusterNode {
         Ok(())
     }
 
+    /// Stops node asynchronously
     #[allow(dead_code)]
     #[tracing::instrument(skip(self))]
     pub async fn stop(&self) -> Result<(), NodeError> {
@@ -96,6 +101,7 @@ impl ClusterNode {
         Ok(())
     }
 
+    /// Stops node synchronously
     #[allow(dead_code)]
     #[tracing::instrument(skip(self))]
     pub fn stop_sync(&self) -> Result<(), NodeError> {

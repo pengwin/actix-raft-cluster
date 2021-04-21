@@ -2,15 +2,21 @@
 use node_actor::NodeActorId;
 use crate::web_server::ServerConfig;
 
+/// Node configuration
 #[derive(Debug)]
 pub struct NodeConfig {
+    /// Cluster name
     pub cluster_name: String,
+    /// Numbers of actix-web workers
     pub sever_workers_number: usize,
+    /// Configuration of current node
     pub this_node: RemoteNodeConfig,
+    /// Configuration of leader node
     pub leader_node: Option<RemoteNodeConfig>,
 }
 
 impl NodeConfig {
+    /// Creates new node configuration
     pub fn new(
         cluster_name: &str,
         node_id: NodeActorId,

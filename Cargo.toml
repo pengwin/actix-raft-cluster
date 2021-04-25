@@ -3,6 +3,7 @@ members = [
     "cluster-node",
     "cluster-node-app",
     "remote-actor",
+    "remote-actor-derive",
     "remote-actor-server",
     "actor-registry",
     "node-actor",

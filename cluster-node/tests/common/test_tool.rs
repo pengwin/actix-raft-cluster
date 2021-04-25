@@ -11,7 +11,7 @@ use node_actor::{Metrics, NodeMetrics, RemoteNodeActorAddr};
 use tokio::sync::oneshot::channel;
 
 pub struct NodeGuard {
-    node: Arc<ClusterNode>
+    pub node: Arc<ClusterNode>
 }
 
 impl Drop for NodeGuard {
@@ -28,14 +28,14 @@ impl TestTool {
     pub async fn start(cfg: Arc<NodeConfig>) -> (NodeGuard, JoinHandle<Result<(), NodeError>>) {
         let (tx, rx) = channel();
         let h = tokio::task::spawn_blocking(move || {
-            std::thread::spawn(move || start(cfg, tx)).join().expect("Unable to join thread")
+            std::thread::spawn(move || start(&cfg, tx)).join().expect("Unable to join thread")
         });
         
         let node = rx.await.expect("Unable to receive node");
         (NodeGuard{node}, h)
     }
 
-    pub async fn get_metrics(cfg: &NodeConfig) -> Result<NodeMetrics, String> {
+    pub async fn get_metrics(cfg: Arc<NodeConfig>) -> Result<NodeMetrics, String> {
         let addr = cfg.this_node.addr();
         let node_id = cfg.this_node.node_id;
         let node = RemoteNodeActorAddr::new(node_id, addr);
@@ -47,7 +47,7 @@ impl TestTool {
 
         send_res.map_err(|e| format!("{:?}", e))
     }
-
+    
     pub async fn wait_for_activation(cfg: Arc<NodeConfig>) -> Result<NodeMetrics, String> {
         let timeout = Duration::from_millis(10);
         let max_reties = 10u8;
@@ -55,7 +55,7 @@ impl TestTool {
 
         for _ in 0..max_reties {
             let res = select! {
-                val = Self::get_metrics(&*cfg) => val,
+                val = Self::get_metrics(cfg.clone()) => val,
                 _ = sleep(timeout) => {
                     Err("Timeout".to_string())
                 }

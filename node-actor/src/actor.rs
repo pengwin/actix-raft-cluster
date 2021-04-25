@@ -1,28 +1,31 @@
-﻿use actix::{Actor, Context};
+﻿use actix::{Actor, Context, AsyncContext};
 use remote_actor::{RemoteActor, RemoteActorFactory};
 
 use actor_registry::NodesRegistry;
+use std::sync::Arc;
+use crate::Init;
 
 type NodeActorId = u64;
 
 pub struct NodeActor {
     pub(super) id: NodeActorId,
-    pub(super) registry: NodesRegistry,
+    pub(super) registry: Arc<NodesRegistry>,
 }
 
 impl Actor for NodeActor {
     type Context = Context<Self>;
 
-    fn started(&mut self, _ctx: &mut Self::Context) {}
+    fn started(&mut self, ctx: &mut Self::Context) {
+        ctx.address().do_send(Init{})
+    }
 }
 
-#[derive(Clone)]
 pub struct NodeActorFactory {
-    registry: NodesRegistry
+    registry: Arc<NodesRegistry>
 }
 
 impl NodeActorFactory {
-    pub fn new(registry: NodesRegistry) -> NodeActorFactory {
+    pub fn new(registry: Arc<NodesRegistry>) -> NodeActorFactory {
         NodeActorFactory{registry}
     }
 }

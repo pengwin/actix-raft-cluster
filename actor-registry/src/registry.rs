@@ -1,47 +1,32 @@
 ﻿use actix::{Addr, ArbiterHandle, Arbiter};
-use remote_actor::{RemoteActor, RemoteActorFactory};
+use remote_actor::{RemoteActor, RemoteActorFactory, RemoteActorAddr};
 use std::borrow::{Borrow, BorrowMut};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use super::{ActorNode, ActorRegistryError};
-use crate::{NodesRegistry};
+use crate::{NodesRegistry, ActorFromNodes};
 
 pub struct ActorRegistry<A: RemoteActor> {
-    name: String,
+    nodes: Arc<NodesRegistry>,
     actors: Arc<RwLock<HashMap<A::Id, ActorNode<A>>>>,
-    nodes: NodesRegistry,
     arbiter: ArbiterHandle,
-    factory: A::Factory,
-}
-
-impl<A: RemoteActor> Clone for ActorRegistry<A>
-{
-    fn clone(&self) -> Self {
-        ActorRegistry {
-            name: self.name.clone(),
-            actors: self.actors.clone(),
-            nodes: self.nodes.clone(),
-            arbiter: self.arbiter.clone(),
-            factory: self.factory.clone(),
-        }
-    }
+    factory: Arc<A::Factory>,
 }
 
 impl<A: RemoteActor> ActorRegistry<A>
 {
-    pub fn new(nodes: NodesRegistry, factory: A::Factory) -> ActorRegistry<A> {
+    pub fn new(nodes: Arc<NodesRegistry>, factory: A::Factory) -> ActorRegistry<A> {
         ActorRegistry{
             nodes,
-            name: A::name().to_owned(),
             actors: Arc::new(RwLock::new(HashMap::new())),
             arbiter: Arbiter::new().handle(),
-            factory,
+            factory: Arc::new(factory),
         }
     }
     
-    pub async fn get_node(&mut self, id: A::Id) -> Result<ActorNode<A>, ActorRegistryError> {
+    pub async fn get_or_activate_node(&self, id: A::Id) -> Result<ActorNode<A>, ActorRegistryError> {
         let rw = self.actors.clone();
         tracing::info!("Capture lock {}", id);
         let nodes_guard = rw.read().await;
@@ -51,10 +36,20 @@ impl<A: RemoteActor> ActorRegistry<A>
 
         match n {
             Some(a) => Ok(a),
-            None => {
-                let act = self.activate(id.clone());
-                let node = self.add_local_node(id, act).await?;
-                Ok(node)
+            None => match self.nodes.get_actor::<A>(id.clone()).await {
+                ActorFromNodes::Remote(r) => {
+                    let node = self.add_remote_node(id, r).await?;
+                    Ok(node)
+                },
+                ActorFromNodes::Local => {
+                    let act = self.activate(id.clone());
+                    let node = self.add_local_node(id, act).await?;
+                    
+                    Ok(node)
+                },
+                ActorFromNodes::NotFound => {
+                    Err(ActorRegistryError::NodeNotFound)
+                }
             }
         }
     }
@@ -83,7 +78,7 @@ impl<A: RemoteActor> ActorRegistry<A>
     }
     
     async fn add_local_node(
-        &mut self,
+        &self,
         node_id: A::Id,
         actor: Addr<A>,
     ) -> Result<ActorNode<A>, ActorRegistryError> {
@@ -92,6 +87,25 @@ impl<A: RemoteActor> ActorRegistry<A>
         let nodes = nodes_guard.borrow_mut();
 
         let node = ActorNode::Local(actor);
+        match nodes.insert(node_id.clone(), node.clone()) {
+            None => Ok(node),
+            Some(_) => {
+                tracing::info!("Replace old value for {}", node_id.clone());
+                Ok(node)
+            }
+        }
+    }
+
+    async fn add_remote_node(
+        &self,
+        node_id: A::Id,
+        actor: RemoteActorAddr<A>,
+    ) -> Result<ActorNode<A>, ActorRegistryError> {
+        let rw = self.actors.clone();
+        let mut nodes_guard = rw.write().await;
+        let nodes = nodes_guard.borrow_mut();
+
+        let node = ActorNode::Remote(actor);
         match nodes.insert(node_id.clone(), node.clone()) {
             None => Ok(node),
             Some(_) => {

@@ -1,5 +1,4 @@
-﻿mod attach_to_leader;
-mod cluster_node;
+﻿mod cluster_node;
 mod registry_collection;
 mod error;
 

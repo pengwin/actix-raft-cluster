@@ -11,8 +11,6 @@ pub struct NodeConfig {
     pub sever_workers_number: usize,
     /// Configuration of current node
     pub this_node: RemoteNodeConfig,
-    /// Configuration of leader node
-    pub leader_node: Option<RemoteNodeConfig>,
 }
 
 impl NodeConfig {
@@ -22,19 +20,8 @@ impl NodeConfig {
         node_id: NodeActorId,
         host: &str,
         port: u16,
-        leader_node_id: Option<NodeActorId>,
-        leader_host: Option<String>,
-        leader_port: Option<u16>,
     ) -> NodeConfig {
-        let leader_node = match (leader_node_id, leader_host, leader_port) {
-            (Some(n), Some(h), Some(p)) => Some(RemoteNodeConfig{
-                node_id: n,
-                host: h,
-                port: p,
-                protocol: "http",
-            }),
-            (_, _, _) => None
-        };
+        
 
         NodeConfig {
             cluster_name: cluster_name.to_owned(),
@@ -44,8 +31,7 @@ impl NodeConfig {
                 host: host.to_owned(),
                 port,
                 protocol: "http"
-            },
-            leader_node,
+            }
         }
     }
     

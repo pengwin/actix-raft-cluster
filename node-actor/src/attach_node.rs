@@ -7,7 +7,7 @@ use super::NodeActorError;
 use super::NodeActor;
 use crate::NodeActorId;
 
-#[derive(Serialize, Deserialize, Message)]
+#[derive(Serialize, Deserialize, Message, RemoteMessage)]
 #[rtype(result = "Result<(), NodeActorError>")]
 pub struct AttachNode {
     id: NodeActorId,
@@ -17,12 +17,6 @@ pub struct AttachNode {
 impl AttachNode {
     pub fn new(id: NodeActorId, addr: String) -> AttachNode {
         AttachNode { id, addr }
-    }
-}
-
-impl RemoteMessage for AttachNode {
-    fn name() -> &'static str {
-        "AttachNode"
     }
 }
 
@@ -36,7 +30,7 @@ impl Handler<AttachNode> for NodeActor {
             async move {
                 info!("Adding node to registry {}", msg.id);
                 block_reg
-                    .attach_node(msg.id, msg.addr.as_str())
+                    .add_node(msg.id, msg.addr.as_str())
                     .await;                
                 Ok(())
             }

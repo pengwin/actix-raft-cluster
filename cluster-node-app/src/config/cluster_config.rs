@@ -1,8 +1,8 @@
 ﻿use structopt::StructOpt;
 
-use cluster_node::NodeConfig;
+use cluster_node::{NodeConfig, RemoteNodeConfig};
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, StructOpt)]
 #[structopt(name = "cluster_node")]
 pub struct ClusterConfig {
     #[structopt(short, long, default_value = "127.0.0.1")]
@@ -37,10 +37,19 @@ impl ClusterConfig {
             &self.cluster_name,
             self.node_id,
             &self.host,
-            self.port,
-            self.leader_id,
-            self.leader_host.to_owned(),
-            self.leader_port)
+            self.port)
+    }
+    
+    pub fn leader_config(&self) -> Option<RemoteNodeConfig> {
+        match (self.leader_id, self.leader_host.clone(), self.leader_port) {
+            (Some(n), Some(h), Some(p)) => Some(RemoteNodeConfig{
+                node_id: n,
+                host: h,
+                port: p,
+                protocol: "http",
+            }),
+            (_, _, _) => None
+        }
     }
 }
 

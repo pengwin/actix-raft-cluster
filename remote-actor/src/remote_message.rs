@@ -2,6 +2,8 @@
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
+pub use remote_actor_derive::RemoteMessage;
+
 pub trait RemoteMessage: Message + Serialize + DeserializeOwned + Send + 'static {
     fn name() -> &'static str;
 }

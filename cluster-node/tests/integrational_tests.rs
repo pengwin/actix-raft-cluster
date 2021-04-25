@@ -22,8 +22,7 @@ fn leader_metrics() -> Result<(), String> {
             host: "127.0.0.1".to_string(),
             port: 8080,
             protocol: "http",
-        },
-        leader_node: None,
+        }
     });
 
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -32,8 +31,10 @@ fn leader_metrics() -> Result<(), String> {
         .thread_name("test_thread")
         .build()
         .map_err(|e| format!("Start rt {:?}", e))?;
+    
+    let rt_handle = rt.handle();
 
-    rt.block_on(async {
+    rt.block_on(async move {
         let (_node_guard, h) = TestTool::start(cfg.clone()).await;
         select! {
             v = h => match v {
@@ -44,7 +45,7 @@ fn leader_metrics() -> Result<(), String> {
                     Err(format!("Node error {:?}", e))
                 }
             },
-            v = rt.spawn(TestTool::wait_for_activation(cfg.clone())) => match v {
+            v = rt_handle.spawn(TestTool::wait_for_activation(cfg.clone())) => match v {
                 Ok(wait_res) => {
                     let m = wait_res?;
                     
@@ -75,8 +76,7 @@ fn attach() -> Result<(), String> {
             host: "127.0.0.1".to_string(),
             port: 8080,
             protocol: "http",
-        },
-        leader_node: None,
+        }
     });
 
     let cfg_follower = Arc::new(NodeConfig {
@@ -88,12 +88,6 @@ fn attach() -> Result<(), String> {
             port: 8081,
             protocol: "http",
         },
-        leader_node: Some(RemoteNodeConfig {
-            node_id: 1,
-            host: "127.0.0.1".to_string(),
-            port: 8080,
-            protocol: "http",
-        }),
     });
 
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -102,8 +96,10 @@ fn attach() -> Result<(), String> {
         .thread_name("test_thread")
         .build()
         .map_err(|e| format!("Start rt {:?}", e))?;
+    
+    let rt_handle = rt.handle();
 
-    rt.block_on(async {
+    rt.block_on(async move {
         let (_leader_guard, leader) = TestTool::start(cfg_leader.clone()).await;
         let (_follower_guard, follower) = TestTool::start(cfg_follower.clone()).await;
         
@@ -112,10 +108,10 @@ fn attach() -> Result<(), String> {
             match TestTool::wait_for_activation(cfg_follower.clone()).await {
                 Ok(m_follower) => {
                     
-                    let m_leader = TestTool::get_metrics(&cfg_leader).await?;
+                    let m_leader = TestTool::get_metrics(cfg_leader.clone()).await?;
                     
-                    assert_eq!(m_leader.nodes.len(), 2);
-                    assert_eq!(m_follower.nodes.len(), 2);
+                    assert_eq!(m_leader.nodes.len(), 2, "assert leader nodes");
+                    assert_eq!(m_follower.nodes.len(), 2, "assert follower nodes");
 
                     Ok(())
                 },
@@ -140,7 +136,7 @@ fn attach() -> Result<(), String> {
                     Err(format!("follower error {:?}", e))
                 }
             },
-            v = rt.spawn(test_body) => match v {
+            v = rt_handle.spawn(test_body) => match v {
                 Ok(wait_res) => {
                     let _ = wait_res?;
                     

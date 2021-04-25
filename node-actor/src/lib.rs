@@ -3,6 +3,7 @@ mod init;
 mod attach_node;
 mod error;
 mod metrics;
+mod ping;
 
 use remote_actor::RemoteActorAddr;
 use actor_registry::ActorRegistry;
@@ -16,4 +17,5 @@ pub use actor::*;
 pub use init::*;
 pub use attach_node::*;
 pub use metrics::*;
+pub use ping::*;
 pub use error::*;

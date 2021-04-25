@@ -7,16 +7,17 @@ use actix::dev::ToEnvelope;
 use actor_registry::ActorRegistry;
 use remote_actor::{actor_url_template, RemoteMessageResponse};
 use remote_actor::{RemoteActor, RemoteMessage};
+use std::sync::Arc;
 
 
 pub struct AppStateWithRegistry<A: RemoteActor> {
-    pub registry: ActorRegistry<A>,
+    pub registry: Arc<ActorRegistry<A>>,
 }
 
 impl<A> AppStateWithRegistry<A> where
     A: RemoteActor
 {
-    pub fn new(registry: ActorRegistry<A>) -> AppStateWithRegistry<A> {
+    pub fn new(registry: Arc<ActorRegistry<A>>) -> AppStateWithRegistry<A> {
         AppStateWithRegistry{registry}
     }
 }
@@ -39,7 +40,7 @@ impl<A: RemoteActor> Configurator<A> {
         tracing::info!("Begin handler {}/{}", A::name(), M::name());
         let id = actor_id.id.clone();
         
-        let r = data.registry.clone().get_node(id).await;
+        let r = data.registry.get_or_activate_node(id).await;
         let request = json.into_inner();
         match r {
             Ok(actor) => {

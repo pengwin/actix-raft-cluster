@@ -1,8 +1,9 @@
 ﻿use thiserror::Error;
-use actor_registry::ActorRegistryError;
+use actor_registry::{ActorRegistryError, NodeId};
 use remote_actor::RemoteActorError;
 use node_actor::NodeActorError;
 use crate::web_server::ServerError;
+use tokio::sync::oneshot::error::RecvError;
 
 /// Attach Node Error
 #[derive(Error, Debug)]
@@ -12,7 +13,16 @@ pub enum AttachError {
     SendError(#[source] #[from]RemoteActorError),
     /// Attach logic Error
     #[error("Attach Node Error({0:?}): '{0}'")]
-    AttachNodeError(#[source] #[from] NodeActorError)
+    AttachNodeError(#[source] #[from] NodeActorError),
+    /// Channel Receive Error
+    #[error("Receive Error({0:?}): '{0}'")]
+    ReceiveError(#[source] #[from] RecvError),
+    /// Leader node is not found
+    #[error("Leader Node {id} is not found")]
+    LeaderNodeIsNotFound{
+        /// Leader Node Id
+        id: NodeId
+    },
 }
 
 /// Node General Error

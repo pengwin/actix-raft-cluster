@@ -5,8 +5,8 @@ use node_actor_server::NodeActorWebConfigurator;
 use crate::node::RegistryCollection;
 use crate::web_server::ServerConfig;
 use super::error::ServerError;
+use std::sync::Arc;
 
-#[derive(Clone)]
 struct AppState {
     name: String,
 }
@@ -19,26 +19,26 @@ async fn index(data: web::Data<AppState>) -> String {
 
 pub fn create_server(
     server_config: &ServerConfig,
-    registry: RegistryCollection,
+    registry: Arc<RegistryCollection>,
 ) -> Result<Server, ServerError> {
     if !actix_rt::System::is_registered() {
         return Err(ServerError::ThreadDoesntHaveSystem)
     }
     
-    let configurator = NodeActorWebConfigurator::new(registry.n);
+    let configurator = Arc::new(NodeActorWebConfigurator::new(registry.node_actors()));
     let bind_point = server_config.bind_point.to_owned();
     
     tracing::info!("Binding server to {}", bind_point);
     
-    let app_state = AppState {
-        name: server_config.name.clone(),
-    };
+    let name = server_config.name.clone();
     
     let srv = HttpServer::new(move || { 
         App::new()
             .wrap(Logger::default())
             .configure(|s| configurator.clone().config(s))
-            .data(app_state.clone())
+            .data(AppState {
+                name: name.clone(),
+            })
             .route("/", web::get().to(index))
             .route("*", web::get().to(HttpResponse::NotFound))
             

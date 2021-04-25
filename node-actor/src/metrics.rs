@@ -12,16 +12,10 @@ pub struct NodeMetrics {
     pub nodes: HashSet<NodeActorId>
 }
 
-#[derive(Debug, Message, Serialize, Deserialize)]
+#[derive(Debug, Message, Serialize, Deserialize, RemoteMessage)]
 #[rtype(result = "Result<NodeMetrics, NodeActorError>")]
 pub struct Metrics {}
 
-
-impl RemoteMessage for Metrics {
-    fn name() -> &'static str {
-        "Metrics"
-    }
-}
 
 impl Handler<Metrics> for NodeActor {
     type Result = ResponseActFuture<Self, Result<NodeMetrics, NodeActorError>>;

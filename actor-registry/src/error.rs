@@ -31,4 +31,6 @@ pub enum ActorRegistryError {
     LocalSendError(#[from] MailboxError),
     #[error("Remote actor send Error({0:?}): '{0}'")]
     RemoteSendError(#[from] RemoteActorError),
+    #[error("Actor not found Error")]
+    NodeNotFound
 }

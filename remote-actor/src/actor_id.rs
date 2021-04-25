@@ -4,6 +4,7 @@ pub trait ActorId: 'static
 + Display
 + Clone
 + Send
++ Sync
 + std::cmp::Eq
 + std::hash::Hash
 + serde::Serialize

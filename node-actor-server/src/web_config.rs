@@ -2,15 +2,15 @@
 use remote_actor_server::{AppStateWithRegistry, Configurator};
 
 use node_actor::{NodeActor, AttachNode, Metrics, NodeActorRegistry};
+use std::sync::Arc;
 
-#[derive(Clone)]
 pub struct NodeActorWebConfigurator {
     state: web::Data<AppStateWithRegistry<NodeActor>>
 }
 
 impl NodeActorWebConfigurator {
     
-    pub fn new(registry: NodeActorRegistry) -> NodeActorWebConfigurator {
+    pub fn new(registry: Arc<NodeActorRegistry>) -> NodeActorWebConfigurator {
         NodeActorWebConfigurator {
             state: web::Data::new(AppStateWithRegistry::new(registry))
         }
@@ -19,7 +19,7 @@ impl NodeActorWebConfigurator {
     async fn health(data: web::Data<AppStateWithRegistry<NodeActor>>) -> ActixResult<HttpResponse>{
         let id = 1u64;
 
-        let r = data.registry.clone().get_node(id).await;
+        let r = data.registry.clone().get_or_activate_node(id).await;
         match r {
             Ok(actor) => {
                 let actor_response = actor.send(Metrics{}).await;

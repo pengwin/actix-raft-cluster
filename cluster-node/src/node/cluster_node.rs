@@ -1,4 +1,5 @@
-﻿use actix::{Arbiter, ArbiterHandle, System};
+﻿use std::sync::Arc;
+use actix::{ArbiterHandle,  Arbiter};
 use actix_web::dev::Server;
 use tracing::{info_span, Instrument};
 
@@ -8,70 +9,56 @@ use crate::web_server::create_server;
 use crate::config::NodeConfig;
 
 use super::RegistryCollection;
-use super::attach_to_leader::attach_to_leader;
 use crate::node::error::NodeError;
-use std::sync::Arc;
+use node_actor::NodeActor;
 
 /// Cluster Node
 /// Starts server, actor system and creates nodes registry
 pub struct ClusterNode {
     srv: Server,
-    system: System,
     main_arbiter: ArbiterHandle,
-    registry: RegistryCollection,
+    registry: Arc<RegistryCollection>,
+    nodes: Arc<NodesRegistry>,
 }
 
 impl ClusterNode {
     /// Creates new node with provided config
     #[tracing::instrument]
-    pub fn new(config: Arc<NodeConfig>) -> Result<ClusterNode, NodeError> {
+    pub fn new(config: &NodeConfig) -> Result<ClusterNode, NodeError> {
         if !actix_rt::System::is_registered() {
             return Err(NodeError::ThreadDoesntHaveSystem)
         }
         
         let server_config = config.server_config();
 
-        let nodes = NodesRegistry::new(
+        let nodes = Arc::new(NodesRegistry::new(
             config.this_node.node_id,
-            &config.this_node.addr());
-
-        let registry = RegistryCollection::new(nodes.clone());
-
+            &config.this_node.addr()));
+        
+        let registry = Arc::new(RegistryCollection::new(nodes.clone()));
+        
         let srv = create_server(&server_config, registry.clone())?;
         
-        let main_arbiter= Arbiter::new();
-        
-        main_arbiter.spawn(async move {
-            let thread_cfg = config.clone();
-            let leader_node = &thread_cfg.leader_node;
-            let this_node = &thread_cfg.this_node;
-            if let Some(leader_node) = leader_node {
-                let r = attach_to_leader(nodes, &leader_node, &this_node).await;
-                match r {
-                    Ok(b) => match b {
-                        true => tracing::info!("Node attached"),
-                        false => {}
-                    },
-                    Err(e) => {
-                        tracing::error!("Failed to attach to node {:?}", e)
-                    }
-                }
-            }
-        });
-        
-        let system = System::current();
-        
         Ok(ClusterNode{
-            system,
-            main_arbiter: main_arbiter.handle(),
+            main_arbiter: Arbiter::current(),
             srv,
             registry,
+            nodes,
         })
     }
-
+    
     /// Runs node
     #[tracing::instrument(skip(self))]
     pub async fn run(&self) -> Result<(), NodeError> {
+        let this_node = self.nodes.this_node();
+        let this_id = this_node.id;
+        self.nodes
+            .register_actor::<NodeActor>(this_id, this_node.id)
+            .await;
+        
+        let node_actor = self.registry.node_actors().get_or_activate_node(this_id).await?;
+        let _ = node_actor.send(node_actor::Ping{}).await?; // activate node with ping
+        
         let srv = self.srv.clone();
         srv.await?;
         
@@ -105,7 +92,7 @@ impl ClusterNode {
     #[allow(dead_code)]
     #[tracing::instrument(skip(self))]
     pub fn stop_sync(&self) -> Result<(), NodeError> {
-        let arb = self.system.arbiter();
+        let arb = self.main_arbiter.clone();
         let span = info_span!("Stop main arbiter");
         let e = span.enter();
         let srv = self.srv.clone();

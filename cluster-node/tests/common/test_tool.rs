@@ -1,4 +1,4 @@
-﻿use std::sync::Arc;
+use std::sync::Arc;
 
 use std::time::Duration;
 use tokio::select;
@@ -6,12 +6,12 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 
 use super::test_node::start;
-use cluster_node::{NodeConfig, NodeError, ClusterNode};
+use cluster_node::{ClusterNode, NodeConfig, NodeError};
 use node_actor::{Metrics, NodeMetrics, RemoteNodeActorAddr};
 use tokio::sync::oneshot::channel;
 
 pub struct NodeGuard {
-    pub node: Arc<ClusterNode>
+    pub node: Arc<ClusterNode>,
 }
 
 impl Drop for NodeGuard {
@@ -28,11 +28,13 @@ impl TestTool {
     pub async fn start(cfg: Arc<NodeConfig>) -> (NodeGuard, JoinHandle<Result<(), NodeError>>) {
         let (tx, rx) = channel();
         let h = tokio::task::spawn_blocking(move || {
-            std::thread::spawn(move || start(&cfg, tx)).join().expect("Unable to join thread")
+            std::thread::spawn(move || start(&cfg, tx))
+                .join()
+                .expect("Unable to join thread")
         });
-        
+
         let node = rx.await.expect("Unable to receive node");
-        (NodeGuard{node}, h)
+        (NodeGuard { node }, h)
     }
 
     pub async fn get_metrics(cfg: Arc<NodeConfig>) -> Result<NodeMetrics, String> {
@@ -47,7 +49,7 @@ impl TestTool {
 
         send_res.map_err(|e| format!("{:?}", e))
     }
-    
+
     pub async fn wait_for_activation(cfg: Arc<NodeConfig>) -> Result<NodeMetrics, String> {
         let timeout = Duration::from_millis(10);
         let max_reties = 10u8;

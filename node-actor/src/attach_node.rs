@@ -1,10 +1,10 @@
-﻿use actix::{ActorFutureExt, Context, Handler, Message, ResponseActFuture, WrapFuture};
-use serde::{Deserialize, Serialize};
+use actix::{ActorFutureExt, Context, Handler, Message, ResponseActFuture, WrapFuture};
 use remote_actor::RemoteMessage;
-use tracing::{info, error};
+use serde::{Deserialize, Serialize};
+use tracing::{error, info};
 
-use super::NodeActorError;
 use super::NodeActor;
+use super::NodeActorError;
 use crate::NodeActorId;
 
 #[derive(Serialize, Deserialize, Message, RemoteMessage)]
@@ -25,13 +25,10 @@ impl Handler<AttachNode> for NodeActor {
 
     #[tracing::instrument(name = "AttachNode", skip(self, msg, _ctx))]
     fn handle(&mut self, msg: AttachNode, _ctx: &mut Context<Self>) -> Self::Result {
-        let block_reg = self.registry.clone();
         Box::pin(
             async move {
                 info!("Adding node to registry {}", msg.id);
-                block_reg
-                    .add_node(msg.id, msg.addr.as_str())
-                    .await;                
+                //self.registry.add_node(msg.id, msg.addr.as_str()).await;
                 Ok(())
             }
             .into_actor(self)

@@ -1,6 +1,6 @@
-﻿use actix::{Context, Handler, Message};
+use actix::{Context, Handler, Message};
 use remote_actor::RemoteMessage;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::NodeActor;
 use crate::NodeActorError;
@@ -17,6 +17,6 @@ impl Handler<Ping> for NodeActor {
 
     #[tracing::instrument(skip(self, _ctx))]
     fn handle(&mut self, _msg: Ping, _ctx: &mut Context<Self>) -> Self::Result {
-        Ok(Pong{})
+        Ok(Pong {})
     }
 }

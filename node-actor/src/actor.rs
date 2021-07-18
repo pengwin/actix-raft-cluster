@@ -1,50 +1,57 @@
-﻿use actix::{Actor, Context, AsyncContext};
+use actix::{Actor, AsyncContext, Context};
 use remote_actor::{RemoteActor, RemoteActorFactory};
 
-use actor_registry::NodesRegistry;
-use std::sync::Arc;
 use crate::Init;
+use actor_registry::{NodesRegistry, NodesRegistryFactory};
+use std::sync::Arc;
 
 type NodeActorId = u64;
 
 pub struct NodeActor {
     pub(super) id: NodeActorId,
-    pub(super) registry: Arc<NodesRegistry>,
+    pub(super) registry: NodesRegistry,
 }
 
 impl Actor for NodeActor {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        ctx.address().do_send(Init{})
-    }
-}
-
-pub struct NodeActorFactory {
-    registry: Arc<NodesRegistry>
-}
-
-impl NodeActorFactory {
-    pub fn new(registry: Arc<NodesRegistry>) -> NodeActorFactory {
-        NodeActorFactory{registry}
-    }
-}
-
-impl RemoteActorFactory<NodeActor> for NodeActorFactory {
-    fn create(&self, id: <NodeActor as RemoteActor>::Id, _ctx: &mut Context<NodeActor>) -> NodeActor {
-        NodeActor { id, registry: self.registry.clone() }
+        ctx.address().do_send(Init {})
     }
 }
 
 impl RemoteActor for NodeActor {
     type Id = NodeActorId;
     type Factory = NodeActorFactory;
-    
+
     fn name() -> &'static str {
-        "NodeActor"
+        stringify!(NodeActor)
     }
 
     fn id(&self) -> NodeActorId {
         self.id
+    }
+}
+
+pub struct NodeActorFactory {
+    registry_factory: Arc<NodesRegistryFactory>,
+}
+
+impl NodeActorFactory {
+    pub fn new(registry_factory: Arc<NodesRegistryFactory>) -> NodeActorFactory {
+        NodeActorFactory { registry_factory }
+    }
+}
+
+impl RemoteActorFactory<NodeActor> for NodeActorFactory {
+    fn create(
+        &self,
+        id: <NodeActor as RemoteActor>::Id,
+        _ctx: &mut Context<NodeActor>,
+    ) -> NodeActor {
+        NodeActor {
+            id,
+            registry: self.registry_factory.create(),
+        }
     }
 }

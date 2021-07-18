@@ -5,8 +5,15 @@
 //use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use std::sync::Once;
+
+static INIT: Once = Once::new();
 
 pub fn setup_tracing() {
+    INIT.call_once(internal_setup_tracing);
+}
+
+fn internal_setup_tracing() {
     let fmt = tracing_subscriber::fmt::layer()
         //.pretty()
         .compact()
@@ -16,7 +23,5 @@ pub fn setup_tracing() {
     //.with_thread_ids(true)
     //.with_thread_names(true);
 
-    tracing_subscriber::registry()
-        .with(fmt)
-        .init();
+    tracing_subscriber::registry().with(fmt).init();
 }

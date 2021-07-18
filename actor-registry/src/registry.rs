@@ -1,32 +1,60 @@
-﻿use actix::{Addr, ArbiterHandle, Arbiter};
-use remote_actor::{RemoteActor, RemoteActorFactory, RemoteActorAddr};
+﻿use actix::{Addr, Arbiter, ArbiterHandle};
+use remote_actor::{RemoteActor, RemoteActorAddr, RemoteActorFactory};
 use std::borrow::{Borrow, BorrowMut};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use super::{ActorNode, ActorRegistryError};
-use crate::{NodesRegistry, ActorFromNodes};
+use crate::{ActorFromNodes, NodesRegistry, NodesRegistryFactory};
+
+pub struct ActorRegistryFactory<A: RemoteActor> {
+    nodes_registry_factory: Arc<NodesRegistryFactory>,
+    arbiter: ArbiterHandle,
+    factory: Arc<A::Factory>,
+    actors: Arc<RwLock<HashMap<A::Id, ActorNode<A>>>>,
+}
+
+impl<A: RemoteActor> ActorRegistryFactory<A> {
+    pub fn new(nodes_registry_factory: Arc<NodesRegistryFactory>, factory: A::Factory) -> ActorRegistryFactory<A> {
+        ActorRegistryFactory {
+            nodes_registry_factory,
+            arbiter: Arbiter::new().handle(),
+            factory: Arc::new(factory),
+            actors: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+    
+    pub fn create(&self) -> ActorRegistry<A> {
+        ActorRegistry::<A>::new(self.nodes_registry_factory.create(), self.arbiter.clone(), self.factory.clone(), self.actors.clone(),)
+    }
+
+    pub fn stop(&self) -> bool {
+        self.arbiter.stop()
+    }
+}
 
 pub struct ActorRegistry<A: RemoteActor> {
-    nodes: Arc<NodesRegistry>,
+    nodes: NodesRegistry,
     actors: Arc<RwLock<HashMap<A::Id, ActorNode<A>>>>,
     arbiter: ArbiterHandle,
     factory: Arc<A::Factory>,
 }
 
-impl<A: RemoteActor> ActorRegistry<A>
-{
-    pub fn new(nodes: Arc<NodesRegistry>, factory: A::Factory) -> ActorRegistry<A> {
-        ActorRegistry{
+impl<A: RemoteActor> ActorRegistry<A> {
+    pub fn new(nodes: NodesRegistry, arbiter: ArbiterHandle, factory: Arc<A::Factory>, actors: Arc<RwLock<HashMap<A::Id, ActorNode<A>>>>) -> ActorRegistry<A> {
+        ActorRegistry {
             nodes,
-            actors: Arc::new(RwLock::new(HashMap::new())),
-            arbiter: Arbiter::new().handle(),
-            factory: Arc::new(factory),
+            actors,
+            arbiter,
+            factory,
         }
     }
-    
-    pub async fn get_or_activate_node(&self, id: A::Id) -> Result<ActorNode<A>, ActorRegistryError> {
+
+    pub async fn get_or_activate_node(
+        &self,
+        id: A::Id,
+    ) -> Result<ActorNode<A>, ActorRegistryError> {
         let rw = self.actors.clone();
         tracing::info!("Capture lock {}", id);
         let nodes_guard = rw.read().await;
@@ -40,17 +68,15 @@ impl<A: RemoteActor> ActorRegistry<A>
                 ActorFromNodes::Remote(r) => {
                     let node = self.add_remote_node(id, r).await?;
                     Ok(node)
-                },
+                }
                 ActorFromNodes::Local => {
                     let act = self.activate(id.clone());
                     let node = self.add_local_node(id, act).await?;
-                    
+
                     Ok(node)
-                },
-                ActorFromNodes::NotFound => {
-                    Err(ActorRegistryError::NodeNotFound)
                 }
-            }
+                ActorFromNodes::NotFound => Err(ActorRegistryError::NodeNotFound),
+            },
         }
     }
 
@@ -66,17 +92,10 @@ impl<A: RemoteActor> ActorRegistry<A>
         set
     }
     
-    pub fn stop(&self) -> bool {
-        self.arbiter.stop()
+    fn extract_node(node: Option<&ActorNode<A>>) -> Option<ActorNode<A>> {
+        node.cloned()
     }
 
-    fn extract_node(node: Option<&ActorNode<A>>) -> Option<ActorNode<A>> {
-        match node {
-            Some(n) => Some(n.clone()),
-            None => None,
-        }
-    }
-    
     async fn add_local_node(
         &self,
         node_id: A::Id,
@@ -114,7 +133,7 @@ impl<A: RemoteActor> ActorRegistry<A>
             }
         }
     }
-    
+
     fn activate(&self, id: A::Id) -> Addr<A> {
         let f = self.factory.clone();
         A::start_in_arbiter(&self.arbiter, move |ctx| f.create(id, ctx))

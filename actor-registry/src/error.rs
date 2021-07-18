@@ -1,9 +1,9 @@
-﻿use std::hash::Hash;
-use thiserror::Error;
 use actix::MailboxError;
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::hash::Hash;
+use thiserror::Error;
 
-use remote_actor::{RemoteActorError, ActorActivatorError};
+use remote_actor::{ActorActivatorError, RemoteActorError};
 
 #[derive(Error, Debug)]
 pub struct NodeNotFoundError {
@@ -17,9 +17,13 @@ impl Display for NodeNotFoundError {
 }
 
 impl NodeNotFoundError {
-    pub fn new<I>(node_id: I) -> NodeNotFoundError where
-    I: 'static + Display + Clone + Eq + Hash {
-        NodeNotFoundError { node_id: format!("{}", node_id) }
+    pub fn new<I>(node_id: I) -> NodeNotFoundError
+    where
+        I: 'static + Display + Clone + Eq + Hash,
+    {
+        NodeNotFoundError {
+            node_id: format!("{}", node_id),
+        }
     }
 }
 
@@ -32,5 +36,5 @@ pub enum ActorRegistryError {
     #[error("Remote actor send Error({0:?}): '{0}'")]
     RemoteSendError(#[from] RemoteActorError),
     #[error("Actor not found Error")]
-    NodeNotFound
+    NodeNotFound,
 }

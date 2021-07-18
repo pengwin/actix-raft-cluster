@@ -1,20 +1,17 @@
-﻿//use tracing_subscriber::fmt::time::ChronoUtc;
+//use tracing_subscriber::fmt::time::ChronoUtc;
 
 //const TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.3f";
 
 //use tracing_subscriber::fmt::format::FmtSpan;
+use std::io::{Error, ErrorKind, Result};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::{SubscriberInitExt, TryInitError};
-use std::io::{Result, Error, ErrorKind};
 
-use crate::config::ClusterConfig;
-
-pub fn setup_tracing(_config: &ClusterConfig) -> Result<()> {
-
+pub fn setup_tracing() -> Result<()> {
     /*let tracer = opentelemetry_jaeger::new_pipeline()
         .with_service_name(format!("cluster_node_{}", config.node_id))
         .install_simple()?;
-    
+
     let opentelemetry = tracing_opentelemetry::layer()
         .with_tracer(tracer);*/
 
@@ -23,9 +20,9 @@ pub fn setup_tracing(_config: &ClusterConfig) -> Result<()> {
         .compact()
         //.with_timer(ChronoUtc::with_format(TIME_FORMAT.to_owned()))
         .without_time();
-        //.with_span_events(FmtSpan::ENTER | FmtSpan::EXIT)
-        //.with_thread_ids(true)
-        //.with_thread_names(true);
+    //.with_span_events(FmtSpan::ENTER | FmtSpan::EXIT)
+    //.with_thread_ids(true)
+    //.with_thread_names(true);
 
     tracing_subscriber::registry()
         //.with(opentelemetry)

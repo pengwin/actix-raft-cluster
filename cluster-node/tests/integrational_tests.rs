@@ -1,10 +1,10 @@
-﻿mod common;
+mod common;
 
 use std::sync::Arc;
 use tokio::select;
-use tracing::{info_span, info};
+use tracing::{info, info_span};
 
-use cluster_node::{NodeConfig, RemoteNodeConfig};
+use cluster_node::{NodeConfig, RemoteNodeConfig, RemoteNodeConfigProtocol};
 
 use crate::common::{setup_tracing, TestTool};
 
@@ -21,8 +21,8 @@ fn leader_metrics() -> Result<(), String> {
             node_id: 1,
             host: "127.0.0.1".to_string(),
             port: 8080,
-            protocol: "http",
-        }
+            protocol: RemoteNodeConfigProtocol::Http,
+        },
     });
 
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -31,7 +31,7 @@ fn leader_metrics() -> Result<(), String> {
         .thread_name("test_thread")
         .build()
         .map_err(|e| format!("Start rt {:?}", e))?;
-    
+
     let rt_handle = rt.handle();
 
     rt.block_on(async move {
@@ -48,7 +48,7 @@ fn leader_metrics() -> Result<(), String> {
             v = rt_handle.spawn(TestTool::wait_for_activation(cfg.clone())) => match v {
                 Ok(wait_res) => {
                     let m = wait_res?;
-                    
+
                     assert_eq!(m.nodes.len(), 1);
 
                     info!("Done");
@@ -75,8 +75,8 @@ fn attach() -> Result<(), String> {
             node_id: 1,
             host: "127.0.0.1".to_string(),
             port: 8080,
-            protocol: "http",
-        }
+            protocol: RemoteNodeConfigProtocol::Http,
+        },
     });
 
     let cfg_follower = Arc::new(NodeConfig {
@@ -86,7 +86,7 @@ fn attach() -> Result<(), String> {
             node_id: 2,
             host: "127.0.0.1".to_string(),
             port: 8081,
-            protocol: "http",
+            protocol: RemoteNodeConfigProtocol::Http,
         },
     });
 
@@ -96,29 +96,28 @@ fn attach() -> Result<(), String> {
         .thread_name("test_thread")
         .build()
         .map_err(|e| format!("Start rt {:?}", e))?;
-    
+
     let rt_handle = rt.handle();
 
     rt.block_on(async move {
         let (_leader_guard, leader) = TestTool::start(cfg_leader.clone()).await;
         let (_follower_guard, follower) = TestTool::start(cfg_follower.clone()).await;
-        
+
         let test_body = async move {
             let _ = TestTool::wait_for_activation(cfg_leader.clone()).await?;
             match TestTool::wait_for_activation(cfg_follower.clone()).await {
                 Ok(m_follower) => {
-                    
                     let m_leader = TestTool::get_metrics(cfg_leader.clone()).await?;
-                    
+
                     assert_eq!(m_leader.nodes.len(), 2, "assert leader nodes");
                     assert_eq!(m_follower.nodes.len(), 2, "assert follower nodes");
 
                     Ok(())
-                },
-                Err(e) => Err(e)
+                }
+                Err(e) => Err(e),
             }
         };
-        
+
         select! {
             v = leader => match v {
                 Ok(_) => {
@@ -139,7 +138,7 @@ fn attach() -> Result<(), String> {
             v = rt_handle.spawn(test_body) => match v {
                 Ok(wait_res) => {
                     let _ = wait_res?;
-                    
+
                     info!("Done");
                     Ok(())
                 },
@@ -150,4 +149,3 @@ fn attach() -> Result<(), String> {
         }
     })
 }
-

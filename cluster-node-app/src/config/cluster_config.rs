@@ -1,60 +1,37 @@
-﻿use structopt::StructOpt;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
 
-use cluster_node::{NodeConfig, RemoteNodeConfig};
+use serde::Deserialize;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "cluster_node")]
-pub struct ClusterConfig {
-    #[structopt(short, long, default_value = "127.0.0.1")]
+#[derive(Debug, Deserialize)]
+pub struct ClusterNodeConfig {
+    pub id: u64,
     pub host: String,
-
-    #[structopt(short, long, default_value = "8080")]
     pub port: u16,
+}
 
-    #[structopt(short, long)]
-    pub node_id: u64,
-
-    #[structopt(long)]
-    pub leader_id: Option<u64>,
-
-    #[structopt(long)]
-    pub leader_host: Option<String>,
-
-    #[structopt(long)]
-    pub leader_port: Option<u16>,
-
-    #[structopt(short, long, default_value = "primary-raft-group")]
+#[derive(Debug, Deserialize)]
+pub struct ClusterConfig {
+    #[serde(rename = "clusterName")]
     pub cluster_name: String,
+    pub nodes: Vec<ClusterNodeConfig>,
 }
 
 impl ClusterConfig {
-    pub fn read_from_args() -> ClusterConfig {
-        ClusterConfig::from_args()
-    }
-    
-    pub fn node_config(&self) -> NodeConfig {
-        NodeConfig::new(
-            &self.cluster_name,
-            self.node_id,
-            &self.host,
-            self.port)
-    }
-    
-    pub fn leader_config(&self) -> Option<RemoteNodeConfig> {
-        match (self.leader_id, self.leader_host.clone(), self.leader_port) {
-            (Some(n), Some(h), Some(p)) => Some(RemoteNodeConfig{
-                node_id: n,
-                host: h,
-                port: p,
-                protocol: "http",
-            }),
-            (_, _, _) => None
-        }
+    pub fn from_file(file_path: &str) -> Result<Self, std::io::Error> {
+        let file = File::open(file_path)?;
+        let mut buffered_reader = BufReader::new(file);
+        let mut contents = String::new();
+        buffered_reader.read_to_string(&mut contents)?;
+
+        serde_json::from_str::<Self>(contents.as_str()).map_err(to_deserialize_error)
     }
 }
 
-impl ToString for ClusterConfig {
-    fn to_string(&self) -> String {
-        format!("{:?}", self)
-    }
+fn to_deserialize_error(e: serde_json::Error) -> std::io::Error {
+    std::io::Error::new(
+        std::io::ErrorKind::Other,
+        format!("File Config Deserialize Error: {:?}", e),
+    )
 }

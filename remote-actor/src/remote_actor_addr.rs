@@ -1,4 +1,4 @@
-﻿use actix::dev::ToEnvelope;
+use actix::dev::ToEnvelope;
 use actix::Handler;
 use reqwest::StatusCode;
 
@@ -42,10 +42,7 @@ impl<A: RemoteActor> RemoteActorAddr<A> {
         self.internal_send::<M>(&msg).await
     }
     #[tracing::instrument(skip(self, msg))]
-    async fn internal_send<M>(
-        &self,
-        msg: &M,
-    ) -> Result<M::Result, RemoteActorError>
+    async fn internal_send<M>(&self, msg: &M) -> Result<M::Result, RemoteActorError>
     where
         A: Handler<M>,
         M: RemoteMessage,
@@ -54,7 +51,7 @@ impl<A: RemoteActor> RemoteActorAddr<A> {
     {
         /*let str_message = serde_json::to_string_pretty(&msg)?;
         log::info!("Sending {}", str_message);*/
-        
+
         let client = reqwest::Client::new();
         let url = actor_url::<A, M>(self.addr.clone(), self.id());
         tracing::info!("Url: {}", url);

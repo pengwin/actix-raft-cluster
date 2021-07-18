@@ -18,4 +18,6 @@ thiserror = "1.0.24"
 
 hash-rings = "1.1.0"
 
+evmap = "10.0.2"
+
 remote-actor = { path = "../remote-actor" }

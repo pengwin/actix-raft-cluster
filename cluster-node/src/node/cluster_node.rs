@@ -1,12 +1,12 @@
-﻿use std::sync::Arc;
-use actix::{ArbiterHandle,  Arbiter};
+﻿use actix::{Arbiter, ArbiterHandle};
 use actix_web::dev::Server;
+use std::sync::Arc;
 use tracing::{info_span, Instrument};
 
-use actor_registry::NodesRegistry;
+use actor_registry::{NodesRegistryFactory, ClusterNodesConfig};
 
-use crate::web_server::create_server;
 use crate::config::NodeConfig;
+use crate::web_server::create_server;
 
 use super::RegistryCollection;
 use crate::node::error::NodeError;
@@ -18,7 +18,7 @@ pub struct ClusterNode {
     srv: Server,
     main_arbiter: ArbiterHandle,
     registry: Arc<RegistryCollection>,
-    nodes: Arc<NodesRegistry>,
+    nodes_registry_factory: Arc<NodesRegistryFactory>,
 }
 
 impl ClusterNode {
@@ -26,42 +26,52 @@ impl ClusterNode {
     #[tracing::instrument]
     pub fn new(config: &NodeConfig) -> Result<ClusterNode, NodeError> {
         if !actix_rt::System::is_registered() {
-            return Err(NodeError::ThreadDoesntHaveSystem)
+            return Err(NodeError::ThreadDoesntHaveSystem);
         }
-        
-        let server_config = config.server_config();
 
-        let nodes = Arc::new(NodesRegistry::new(
-            config.this_node.node_id,
-            &config.this_node.addr()));
+        let server_config = config.server_config()
+            .map_err(NodeError::from)?;
+
+        let nodes_config = config.nodes_config()
+            .map_err(NodeError::from)?;
         
-        let registry = Arc::new(RegistryCollection::new(nodes.clone()));
-        
+        let cluster_config = ClusterNodesConfig::new(nodes_config.this_node, nodes_config.nodes);
+
+        let nodes_registry_factory = Arc::new(NodesRegistryFactory::new(&cluster_config));
+
+        let registry = Arc::new(RegistryCollection::new(nodes_registry_factory.clone()));
+
         let srv = create_server(&server_config, registry.clone())?;
-        
-        Ok(ClusterNode{
+
+        Ok(ClusterNode {
             main_arbiter: Arbiter::current(),
             srv,
             registry,
-            nodes,
+            nodes_registry_factory,
         })
     }
-    
+
     /// Runs node
     #[tracing::instrument(skip(self))]
     pub async fn run(&self) -> Result<(), NodeError> {
-        let this_node = self.nodes.this_node();
-        let this_id = this_node.id;
-        self.nodes
-            .register_actor::<NodeActor>(this_id, this_node.id)
+        let nodes_registry = self.nodes_registry_factory.create();
+
+        let this_id = nodes_registry.this_node_id();
+        
+        nodes_registry.register_actor::<NodeActor>(this_id, this_id)
             .await;
-        
-        let node_actor = self.registry.node_actors().get_or_activate_node(this_id).await?;
-        let _ = node_actor.send(node_actor::Ping{}).await?; // activate node with ping
-        
+
+        let node_actor = self
+            .registry
+            .node_actors_factory()
+            .create()
+            .get_or_activate_node(this_id)
+            .await?;
+        let _ = node_actor.send(node_actor::Ping {}).await?; // activate node with ping
+
         let srv = self.srv.clone();
         srv.await?;
-        
+
         Ok(())
     }
 
@@ -70,21 +80,21 @@ impl ClusterNode {
     #[tracing::instrument(skip(self))]
     pub async fn stop(&self) -> Result<(), NodeError> {
         let srv = self.srv.clone();
-        
+
         srv.stop(true).instrument(info_span!("Stop server")).await;
-        
+
         let arb = self.main_arbiter.clone();
         let span = info_span!("Stop main arbiter");
         let e = span.enter();
         arb.stop();
         drop(e);
-        
+
         let reg = self.registry.clone();
         let span = info_span!("Stop registry");
         let e = span.enter();
         reg.stop();
         drop(e);
-        
+
         Ok(())
     }
 
@@ -106,7 +116,7 @@ impl ClusterNode {
         let e = span.enter();
         reg.stop();
         drop(e);
-        
+
         Ok(())
     }
 }

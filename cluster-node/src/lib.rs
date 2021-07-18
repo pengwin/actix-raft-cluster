@@ -1,13 +1,13 @@
 ﻿//! Cluster of nodes with actors
-//! 
+//!
 //! Actors powered by [actix framework](https://github.com/actix/actix)
-//! 
+//!
 //! Network layer powered by [actix-web](https://github.com/actix/actix-web)
-//! 
+//!
 //! The end goal is to implement cluster of virtual actors similar to [Orleans](https://dotnet.github.io/orleans/)
-//! 
+//!
 //! Features plan:
-//! 
+//!
 //! - **✓ Actors can be reached remotely**
 //! - **✓ Actors activated by first call**
 //! -  Actors passivation after inactivity period
@@ -23,11 +23,9 @@
 #![deny(missing_doc_code_examples)]
 #![doc(html_no_source)]
 
+mod config;
 mod node;
 mod web_server;
-mod config;
 
-pub use config::{NodeConfig, RemoteNodeConfig};
-pub use node::{ClusterNode, NodeError, AttachError};
-
-
+pub use config::{NodeConfig, RemoteNodeConfig, RemoteNodeConfigProtocol};
+pub use node::{AttachError, ClusterNode, NodeError};

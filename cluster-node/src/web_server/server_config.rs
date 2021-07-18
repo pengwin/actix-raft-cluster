@@ -1,16 +1,20 @@
-﻿use std::time::Duration;
 use crate::RemoteNodeConfig;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub struct ServerConfig {
     pub name: String,
     pub bind_point: String,
     pub(super) sever_workers_number: usize,
-    pub(super) shutdown_timeout: Duration
+    pub(super) shutdown_timeout: Duration,
 }
 
 impl ServerConfig {
-    pub fn new(name: &str, sever_workers_number: usize, this_node: &RemoteNodeConfig) -> ServerConfig {
+    pub fn new(
+        name: &str,
+        sever_workers_number: usize,
+        this_node: &RemoteNodeConfig,
+    ) -> ServerConfig {
         ServerConfig {
             name: name.to_owned(),
             sever_workers_number,

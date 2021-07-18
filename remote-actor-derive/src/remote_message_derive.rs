@@ -1,4 +1,4 @@
-﻿use proc_macro::TokenStream;
+use proc_macro::TokenStream;
 use quote::quote;
 
 pub fn remote_message_derive_internal(input: TokenStream) -> TokenStream {
@@ -7,7 +7,6 @@ pub fn remote_message_derive_internal(input: TokenStream) -> TokenStream {
     // Build the trait implementation
     impl_remote_message(&ast)
 }
-
 
 fn impl_remote_message(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;

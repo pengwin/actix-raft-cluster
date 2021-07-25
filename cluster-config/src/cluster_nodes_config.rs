@@ -16,7 +16,7 @@ pub struct ClusterNodesConfig {
 }
 
 impl ClusterNodesConfig {
-    pub fn new(this_node_id: NodeId, nodes: &Vec<NodeItem>) -> ClusterNodesConfig {
+    pub fn new(this_node_id: NodeId, nodes: &[NodeItem]) -> ClusterNodesConfig {
         let (r, mut w) = evmap::new();
 
         tracing::info!("Create cluster nodes config with  {} nodes", nodes.len());
@@ -58,7 +58,7 @@ impl ClusterNodesConfigHandleFactory {
         let reader = self.reader_factory.handle();
 
         ClusterNodesConfigHandle{
-            this_node_id: self.this_node_id.clone(),
+            this_node_id: self.this_node_id,
             reader,
         }
     }

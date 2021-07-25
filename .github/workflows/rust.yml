@@ -49,6 +49,7 @@ jobs:
           files: results.xml
 
   coverage:
+    if: ${{ false }}
     name: Test coverage
     runs-on: ubuntu-latest
     steps:

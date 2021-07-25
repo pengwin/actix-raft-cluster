@@ -39,24 +39,28 @@ jobs:
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
       - name: Generate test result and coverage report
         run: |
-          cargo install cargo2junit grcov;
+          cargo install cargo2junit;
           cargo test $CARGO_OPTIONS -- -Z unstable-options --format json | cargo2junit > results.xml;
-        #  zip -0 ccov.zip `find . \( -name "$PROJECT_NAME_UNDERSCORE*.gc*" \) -print`;
-        #  grcov ccov.zip -s . -t lcov --llvm --ignore-not-existing --ignore "/*" --ignore "tests/*" -o lcov.info;
       - name: Upload test results
         uses: EnricoMi/publish-unit-test-result-action@v1
         with:
           check_name: Test Results
           github_token: ${{ secrets.GITHUB_TOKEN }}
           files: results.xml
-      #- name: Upload to CodeCov
-      #  uses: codecov/codecov-action@v1
-      #  with:
-          # required for private repositories:
-          # token: ${{ secrets.CODECOV_TOKEN }}
-      #    files: ./lcov.info
-      #    fail_ci_if_error: true
 
+  coverage:
+    name: Test coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:

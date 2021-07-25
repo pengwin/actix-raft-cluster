@@ -72,12 +72,12 @@ fn attach() -> Result<(), String> {
     let nodes = vec![RemoteNodeConfig {
         node_id: 1,
         host: "127.0.0.1".to_string(),
-        port: 8080,
+        port: 8082,
         protocol: RemoteNodeConfigProtocol::Http,
     }, RemoteNodeConfig {
         node_id: 2,
         host: "127.0.0.1".to_string(),
-        port: 8081,
+        port: 8083,
         protocol: RemoteNodeConfigProtocol::Http,
     }];
 

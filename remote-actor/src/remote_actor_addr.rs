@@ -6,11 +6,11 @@ use super::actor_path_builder::actor_url;
 use super::error::{RemoteActorError, RemoteActorHttpError};
 use super::RemoteActor;
 use super::RemoteMessage;
-use crate::RemoteMessageResponse;
+use crate::{RemoteMessageResponse, ActorAddr};
 
 pub struct RemoteActorAddr<A: RemoteActor> {
     id: A::Id,
-    addr: String,
+    addr: ActorAddr,
 }
 
 impl<A: RemoteActor> Clone for RemoteActorAddr<A> {
@@ -23,7 +23,7 @@ impl<A: RemoteActor> Clone for RemoteActorAddr<A> {
 }
 
 impl<A: RemoteActor> RemoteActorAddr<A> {
-    pub fn new(id: A::Id, addr: String) -> RemoteActorAddr<A> {
+    pub fn new(id: A::Id, addr: ActorAddr) -> RemoteActorAddr<A> {
         RemoteActorAddr { id, addr }
     }
 

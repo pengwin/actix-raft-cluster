@@ -21,6 +21,13 @@ The end goal is to implement cluster of virtual actors similar to [Orleans](http
 - [ ] Nodes use tcp server for network communication
 - [ ] Builder like API to register actor types
 
+# Requirements
+
+Tested on:
+
+- Docker v20.10.7
+- Docker-compose v1.29.2
+
 # Build
 
 ```

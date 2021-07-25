@@ -1,6 +1,7 @@
 use super::remote_actor_trait::RemoteActor;
 use super::remote_message::{RemoteMessage, RemoteMessageResponse};
 use actix::{Handler, Message};
+use crate::ActorAddr;
 
 pub fn actor_url_template<A, M>() -> String
 where
@@ -17,7 +18,7 @@ where
     )
 }
 
-pub fn actor_url<A, M>(url: String, id: A::Id) -> String
+pub fn actor_url<A, M>(url: ActorAddr, id: A::Id) -> String
 where
     A: Handler<M> + RemoteActor,
     M: Message + RemoteMessage,

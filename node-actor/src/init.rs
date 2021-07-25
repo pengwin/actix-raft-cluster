@@ -13,7 +13,9 @@ impl Handler<Init> for NodeActor {
 
     #[tracing::instrument(skip(self, _ctx))]
     fn handle(&mut self, _msg: Init, _ctx: &mut Context<Self>) -> Self::Result {
+        info!("Start Init");
         let members = self.registry.get_members();
+        info!("Cluster members {members}", members = members.len());
         Box::pin(
             async move {
                 if members.is_empty() {

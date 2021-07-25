@@ -1,5 +1,5 @@
 use actor_registry::NodesRegistryFactory;
-use node_actor::{NodeActorFactory, NodeActorRegistry, NodeActorRegistryFactory};
+use node_actor::{NodeActorFactory, NodeActorRegistryFactory};
 use std::sync::Arc;
 
 pub struct RegistryCollection {

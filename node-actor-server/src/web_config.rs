@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, Result as ActixResult};
 use remote_actor_server::{AppStateWithRegistry, Configurator};
 
-use node_actor::{AttachNode, Metrics, NodeActor, NodeActorRegistry, NodeActorRegistryFactory};
+use node_actor::{Metrics, NodeActor, NodeActorRegistryFactory};
 use std::sync::Arc;
 
 pub struct NodeActorWebConfigurator {
@@ -38,7 +38,6 @@ impl NodeActorWebConfigurator {
         let registry = self.registry_factory.create();
         let state = web::Data::new(AppStateWithRegistry::new(Arc::new(registry)));
         cfg.app_data(state);
-        Configurator::<NodeActor>::config_message::<AttachNode>(cfg);
         Configurator::<NodeActor>::config_message::<Metrics>(cfg);
         cfg.route("/health", web::get().to(Self::health));
     }

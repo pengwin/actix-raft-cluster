@@ -17,12 +17,13 @@ fn leader_metrics() -> Result<(), String> {
     let cfg = Arc::new(NodeConfig {
         sever_workers_number: 1,
         cluster_name: "test_cluster".to_owned(),
-        this_node: RemoteNodeConfig {
+        this_node_id: 1,
+        nodes: vec![RemoteNodeConfig {
             node_id: 1,
             host: "127.0.0.1".to_string(),
             port: 8080,
             protocol: RemoteNodeConfigProtocol::Http,
-        },
+        }],
     });
 
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -49,7 +50,7 @@ fn leader_metrics() -> Result<(), String> {
                 Ok(wait_res) => {
                     let m = wait_res?;
 
-                    assert_eq!(m.nodes.len(), 1);
+                    assert_eq!(1, m.nodes.len());
 
                     info!("Done");
                     Ok(())
@@ -67,27 +68,31 @@ fn attach() -> Result<(), String> {
     setup_tracing();
     let span = info_span!("test_main");
     let _enter = span.enter();
+    
+    let nodes = vec![RemoteNodeConfig {
+        node_id: 1,
+        host: "127.0.0.1".to_string(),
+        port: 8080,
+        protocol: RemoteNodeConfigProtocol::Http,
+    }, RemoteNodeConfig {
+        node_id: 2,
+        host: "127.0.0.1".to_string(),
+        port: 8081,
+        protocol: RemoteNodeConfigProtocol::Http,
+    }];
 
     let cfg_leader = Arc::new(NodeConfig {
         sever_workers_number: 1,
         cluster_name: "test_cluster".to_owned(),
-        this_node: RemoteNodeConfig {
-            node_id: 1,
-            host: "127.0.0.1".to_string(),
-            port: 8080,
-            protocol: RemoteNodeConfigProtocol::Http,
-        },
+        this_node_id: 1,
+        nodes: nodes.to_owned(),
     });
 
     let cfg_follower = Arc::new(NodeConfig {
         sever_workers_number: 1,
         cluster_name: "test_cluster".to_owned(),
-        this_node: RemoteNodeConfig {
-            node_id: 2,
-            host: "127.0.0.1".to_string(),
-            port: 8081,
-            protocol: RemoteNodeConfigProtocol::Http,
-        },
+        this_node_id: 1,
+        nodes,
     });
 
     let rt = tokio::runtime::Builder::new_current_thread()

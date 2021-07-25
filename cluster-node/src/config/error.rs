@@ -1,5 +1,5 @@
 ﻿use thiserror::Error;
-use actor_registry::NodeId;
+use cluster_config::NodeId;
 
 /// Attach Node Error
 #[derive(Error, Debug)]

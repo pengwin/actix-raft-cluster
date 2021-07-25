@@ -2,7 +2,7 @@
 use std::fmt::Formatter;
 
 /// Known protocols for cluster node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RemoteNodeConfigProtocol {
     /// Http protocol
     Http
@@ -17,7 +17,7 @@ impl std::fmt::Display for RemoteNodeConfigProtocol {
 }
 
 /// Config of remote node
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RemoteNodeConfig {
     /// Remote node Id
     pub node_id: NodeActorId,

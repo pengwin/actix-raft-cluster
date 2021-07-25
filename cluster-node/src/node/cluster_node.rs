@@ -3,7 +3,8 @@ use actix_web::dev::Server;
 use std::sync::Arc;
 use tracing::{info_span, Instrument};
 
-use actor_registry::{NodesRegistryFactory, ClusterNodesConfig};
+use actor_registry::{NodesRegistryFactory};
+use cluster_config::{ClusterNodesConfig};
 
 use crate::config::NodeConfig;
 use crate::web_server::create_server;
@@ -15,6 +16,8 @@ use node_actor::NodeActor;
 /// Cluster Node
 /// Starts server, actor system and creates nodes registry
 pub struct ClusterNode {
+    #[allow(dead_code)]
+    config: ClusterNodesConfig,
     srv: Server,
     main_arbiter: ArbiterHandle,
     registry: Arc<RegistryCollection>,
@@ -32,10 +35,9 @@ impl ClusterNode {
         let server_config = config.server_config()
             .map_err(NodeError::from)?;
 
-        let nodes_config = config.nodes_config()
-            .map_err(NodeError::from)?;
+        let nodes_config = config.nodes_config();
         
-        let cluster_config = ClusterNodesConfig::new(nodes_config.this_node, nodes_config.nodes);
+        let cluster_config = ClusterNodesConfig::new(nodes_config.this_node_id, &nodes_config.nodes);
 
         let nodes_registry_factory = Arc::new(NodesRegistryFactory::new(&cluster_config));
 
@@ -44,6 +46,7 @@ impl ClusterNode {
         let srv = create_server(&server_config, registry.clone())?;
 
         Ok(ClusterNode {
+            config: cluster_config,
             main_arbiter: Arbiter::current(),
             srv,
             registry,

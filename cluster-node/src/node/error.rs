@@ -1,6 +1,7 @@
 ﻿use thiserror::Error;
 
-use actor_registry::{ActorRegistryError, NodeId};
+use cluster_config::NodeId;
+use actor_registry::ActorRegistryError;
 use node_actor::NodeActorError;
 use remote_actor::RemoteActorError;
 

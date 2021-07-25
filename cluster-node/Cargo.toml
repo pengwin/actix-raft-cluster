@@ -29,6 +29,7 @@ node-actor-server = { path = "../node-actor-server" }
 actor-registry = { path = "../actor-registry" }
 remote-actor = { path = "../remote-actor" }
 remote-actor-server = { path = "../remote-actor-server" }
+cluster-config = { path = "../cluster-config" }
 
 [dev-dependencies]
 clippy = { version = "0.0.*" }

@@ -1,7 +1,5 @@
-﻿use std::collections::HashMap;
-
-use node_actor::NodeActorId;
-use actor_registry::{NodeItem, NodeId};
+﻿use node_actor::NodeActorId;
+use cluster_config::{NodeItem, NodeId};
 
 use crate::config::remote_node::{RemoteNodeConfig};
 use crate::web_server::ServerConfig;
@@ -22,8 +20,8 @@ pub struct NodeConfig {
 }
 
 pub(crate) struct NodesConfig {
-    pub(crate) this_node: NodeItem,
-    pub(crate) nodes: HashMap<NodeId, NodeItem>
+    pub(crate) this_node_id: NodeId,
+    pub(crate) nodes: Vec<NodeItem>
 }
 
 impl NodeConfig {
@@ -40,6 +38,14 @@ impl NodeConfig {
             nodes,
         }
     }
+    
+    /// Returns copy of node with id == this_node_id
+    pub fn this_node(&self) -> Option<RemoteNodeConfig> {
+        match self.get_this_node(|e| e.clone()) {
+            Ok(e) => Some(e),
+            Err(_) => None,
+        }
+    }
 
     pub(crate) fn server_config(&self) -> Result<ServerConfig, ConfigError> {
         self.get_this_node(|this_node| {
@@ -48,15 +54,13 @@ impl NodeConfig {
         })
     }
 
-    pub(crate) fn nodes_config(&self) -> Result<NodesConfig, ConfigError> {
-        self.get_this_node(|this_node| {
-            let this_node = NodeItem::new(this_node.node_id, this_node.addr().as_str());
-            let mut nodes = HashMap::new();
-            for node in &self.nodes {
-                nodes.insert(node.node_id, NodeItem::new(node.node_id, node.addr().as_str()));
-            }
-            NodesConfig{this_node, nodes}
-        })
+    pub(crate) fn nodes_config(&self) -> NodesConfig {
+        NodesConfig{
+            this_node_id: self.this_node_id,
+            nodes: self.nodes.iter()
+                .map(|n| NodeItem::new(n.node_id, n.addr().as_str()))
+                .collect()
+        }
     }
     
     fn get_this_node<T>(&self, mapper: impl FnOnce(&RemoteNodeConfig) -> T) -> Result<T, ConfigError> {

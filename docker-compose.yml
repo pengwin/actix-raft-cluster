@@ -4,10 +4,14 @@ services:
     build: .
     ports:
       - "8080:8080"
-    entrypoint: /usr/bin/cluster-node-app -n 1 -h 0.0.0.0 -p 8080
+    volumes:
+      - ./cluster-node-app/config.example.json:/etc/config.json
+    entrypoint: /usr/bin/cluster-node-app -n 1 --config-file /etc/config.json
     
   follower:
     build: .
     ports:
       - "8081:8081"
-    entrypoint: /usr/bin/cluster-node-app -n 2 -h 0.0.0.0 -p 8081 --leader-host leader --leader-port 8080 --leader-id 1
+    volumes:
+      - ./cluster-node-app/config.example.json:/etc/config.json
+    entrypoint: /usr/bin/cluster-node-app -n 2 --config-file /etc/config.json

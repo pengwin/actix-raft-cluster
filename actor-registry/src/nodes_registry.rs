@@ -1,57 +1,12 @@
 ﻿use std::collections::hash_map::HashMap;
 use std::collections::hash_set::HashSet;
-use std::fmt::Display;
-use std::sync::Arc;
-use std::hash::Hash;
-use std::cmp::{PartialEq, Eq};
-use evmap::shallow_copy::ShallowCopy;
 
+use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use remote_actor::{RemoteActor, RemoteActorAddr};
 
-use crate::cluster_nodes_config::ClusterNodesConfig;
-use std::mem::ManuallyDrop;
-use crate::{ClusterNodesConfigHandle, ClusterNodesConfigHandleFactory};
-
-/// Node Id
-pub type NodeId = u64;
-
-#[derive(Hash, Eq, PartialEq, Clone)]
-pub struct NodeItem {
-    pub id: NodeId,
-    pub addr: String,
-}
-
-impl ShallowCopy for NodeItem {
-    unsafe fn shallow_copy(&self) -> ManuallyDrop<Self> {
-        ManuallyDrop::new(Self{
-            id: self.id,
-            addr: self.addr.clone()
-        })
-    }
-}
-
-impl Display for NodeItem {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "(id {})", self.id)
-    }
-}
-
-impl NodeItem {
-    fn to_remote_actor_addr<A: RemoteActor>(&self, id: A::Id) -> RemoteActorAddr<A> {
-        RemoteActorAddr::<A>::new(id, self.addr.clone())
-    }
-}
-
-impl NodeItem {
-    pub fn new(id: NodeId, addr: &str) -> NodeItem {
-        NodeItem {
-            id,
-            addr: addr.to_owned(),
-        }
-    }
-}
+use cluster_config::{NodeId, ClusterNodesConfigHandleFactory, ClusterNodesConfig, ClusterNodesConfigHandle};
 
 pub enum ActorFromNodes<A: RemoteActor> {
     Remote(RemoteActorAddr<A>),

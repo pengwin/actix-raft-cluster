@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "cluster-config",
     "cluster-node",
     "cluster-node-app",
     "remote-actor",

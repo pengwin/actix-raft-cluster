@@ -9,6 +9,7 @@ use super::test_node::start;
 use cluster_node::{ClusterNode, NodeConfig, NodeError};
 use node_actor::{Metrics, NodeMetrics, RemoteNodeActorAddr};
 use tokio::sync::oneshot::channel;
+use remote_actor::{ActorAddr};
 
 pub struct NodeGuard {
     pub node: Arc<ClusterNode>,
@@ -38,9 +39,9 @@ impl TestTool {
     }
 
     pub async fn get_metrics(cfg: Arc<NodeConfig>) -> Result<NodeMetrics, String> {
-        let addr = cfg.this_node.addr();
-        let node_id = cfg.this_node.node_id;
-        let node = RemoteNodeActorAddr::new(node_id, addr);
+        let addr = cfg.this_node().ok_or_else(|| "this node is not found")?.addr();
+        let node_id = cfg.this_node().ok_or_else(|| "this node is not found")?.node_id;
+        let node = RemoteNodeActorAddr::new(node_id, ActorAddr::from(addr));
 
         let send_res = node
             .send(&Metrics {})

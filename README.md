@@ -1,3 +1,5 @@
+![rust workflow](https://github.com/pengwin/actix-raft-cluster/actions/workflows/rust.yml/badge.svg)
+
 # Actix raft cluster
 
 Cluster of nodes with actors

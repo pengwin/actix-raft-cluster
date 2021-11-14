@@ -36,7 +36,7 @@ pub fn create_server(
         App::new()
             .wrap(Logger::default())
             .configure(|s| configurator.clone().config(s))
-            .data(AppState { name: name.clone() })
+            .app_data(AppState { name: name.clone() })
             .route("/", web::get().to(index))
             .route("*", web::get().to(HttpResponse::NotFound))
     })
@@ -44,7 +44,7 @@ pub fn create_server(
     .map_err(ServerError::from)?
     .shutdown_timeout(server_config.shutdown_timeout.as_secs())
     .workers(server_config.sever_workers_number)
-    .run(); // <- Set shutdown timeout to 60 seconds;
+    .run();
 
     Ok(srv)
 }

@@ -8,5 +8,6 @@ members = [
     "remote-actor-server",
     "actor-registry",
     "node-actor",
-    "node-actor-server"
+    "node-actor-server",
+    "http-json-transport"
 ]

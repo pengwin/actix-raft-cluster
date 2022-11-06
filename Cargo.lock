@@ -936,6 +936,7 @@ name = "hello-actor"
 version = "0.1.0"
 dependencies = [
  "actix 0.13.0",
+ "actix-rt",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -2096,6 +2097,7 @@ dependencies = [
  "libc",
  "memchr",
  "mio",
+ "num_cpus",
  "parking_lot 0.12.1",
  "pin-project-lite",
  "signal-hook-registry",

@@ -3,8 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use actix::prelude::*;
 
 use thiserror::Error;
+use tokio::task::JoinSet;
 
-use super::error::VirtualActorRegistryError;
+use super::error::{VirtualActorRegistryError, StopAllError};
 use crate::{
     housekeeping::{HousekeepingActor, RefreshUsage},
     virtual_actor::{
@@ -214,6 +215,60 @@ where
                             println!("Unable to park actor {} {} {:?}", V::name(), msg.id, e);
                             HousekeepingActor::<V>::from_registry()
                                 .do_send(RefreshUsage::new(&msg.id)); // refresh usage, reschedule actor park
+                        }
+                    }
+                }),
+        )
+    }
+}
+
+#[derive(Message)]
+#[rtype(result = "Result<(), VirtualActorRegistryError>")]
+pub struct StopAllActors;
+
+impl<V> Handler<StopAllActors> for VirtualActorRegistryActor<V>
+where
+    V: VirtualActor,
+{
+    type Result = ResponseActFuture<Self, Result<(), VirtualActorRegistryError>>;
+
+    fn handle(&mut self, _msg: StopAllActors, _ctx: &mut Context<Self>) -> Self::Result {
+        let actors: Vec<Addr<V>> = self.map.values().into_iter()
+            .map(|a| a.clone())
+            .collect();
+        Box::pin(
+            async move {
+                let mut set = JoinSet::new();
+                for addr in actors.into_iter() {
+                    set.spawn(async move { addr.send(StopRequest).await });
+                }
+                let mut count = 0;
+                let mut vec_err = Vec::new();
+                while let Some(res) = set.join_next().await {
+                    if let Err(e) = res
+                    .map_err(|e|StopAllError::from(e))
+                    .map_err(|e| StopAllError::from(e))
+                    .map_err(|e| StopAllError::from(e)) {
+                        vec_err.push(e)
+                    } else {
+                        count+=1;
+                    }
+                }
+                if vec_err.len() == 0 {
+                    return Ok(count);
+                }
+                return Err(VirtualActorRegistryError::StopAllErrors(vec_err))
+             }
+                .into_actor(self) // converts future to ActorFuture
+                .map(move |res, _act, _ctx| {
+                    match res {
+                        Ok(count) => {
+                            println!("Stopped {} actors {}", count, V::name());
+                            return Ok(())
+                        }
+                        Err(e) => {
+                            println!("Unable to stop all actors {} {:?}", V::name(), e);
+                            return Err(e);
                         }
                     }
                 }),

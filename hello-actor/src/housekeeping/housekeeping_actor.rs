@@ -43,8 +43,9 @@ where
 {
     type Context = Context<Self>;
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name()))]
     fn started(&mut self, ctx: &mut Self::Context) {
-        println!("Service HousekeepingActor actor started");
+        tracing::debug!("Service actor started");
         ctx.run_interval(Duration::from_secs(1), |_, c| {
             c.address().do_send(RevisitUsage {
                 lifetime_threshold: Duration::from_secs(20),
@@ -52,8 +53,9 @@ where
         });
     }
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name()))]
     fn stopped(&mut self, _ctx: &mut Self::Context) {
-        println!("Service HousekeepingActor actor stopped");
+        tracing::debug!("Service actor stopped");
     }
 }
 
@@ -63,8 +65,9 @@ impl<V> SystemService for HousekeepingActor<V>
 where
     V: VirtualActor,
 {
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name()))]
     fn service_started(&mut self, _ctx: &mut Context<Self>) {
-        println!("Service started");
+        tracing::debug!("Service started");
     }
 }
 
@@ -86,6 +89,7 @@ where
 {
     type Result = ();
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name(), virtual_message=stringify!(RefreshUsage)))]
     fn handle(&mut self, msg: RefreshUsage<V>, _ctx: &mut Context<Self>) -> Self::Result {
         self.map
             .entry(msg.id)
@@ -107,6 +111,7 @@ where
 {
     type Result = ();
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name(), virtual_message=stringify!(RevisitUsage)))]
     fn handle(&mut self, msg: RevisitUsage, ctx: &mut Context<Self>) -> Self::Result {
         for (id, stat) in &self.map {
             if stat.last_used.elapsed() >= msg.lifetime_threshold {
@@ -134,9 +139,10 @@ where
 {
     type Result = ();
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name(), virtual_message=stringify!(UnregisterActor)))]
     fn handle(&mut self, msg: UnregisterActor<V>, _ctx: &mut Context<Self>) -> Self::Result {
         self.reg.do_send(ParkVirtualActor::<V>::new(&msg.id));
         self.map.remove(&msg.id);
-        println!("Stop actor {}", msg.id);
+        tracing::debug!("Stop actor {}", msg.id);
     }
 }

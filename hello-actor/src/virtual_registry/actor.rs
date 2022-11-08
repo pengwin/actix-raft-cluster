@@ -4,6 +4,8 @@ use actix::prelude::*;
 
 use thiserror::Error;
 use tokio::task::JoinSet;
+use tracing::span::Entered;
+use tracing_actix::ActorInstrument;
 
 use super::error::{VirtualActorRegistryError, StopAllError};
 use crate::{
@@ -40,7 +42,9 @@ impl<V: VirtualActor> VirtualActorRegistryActor<V> {
     ) -> ResponseActFuture<Self, Result<GetActorResult<V>, VirtualActorRegistryError>> {
         let fut = async move {
             factory.create(id.clone()).await
-        }.into_actor(self).map(|r, this, _| {
+        }.into_actor(self)
+        .actor_instrument(tracing::Span::current())
+        .map(|r, this, _| {
             let a = r.map_err(VirtualActorRegistryError::from)?;
             let actor_id = a.id();
             let addr = a.start();
@@ -111,12 +115,14 @@ where
 {
     type Context = Context<Self>;
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name()))]
     fn started(&mut self, _ctx: &mut Self::Context) {
-        println!("Actor Registry for {} started", V::name());
+        tracing::debug!("Actor Registry started");
     }
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name()))]
     fn stopped(&mut self, _ctx: &mut Self::Context) {
-        println!("Actor Registry for {} stopped", V::name());
+        tracing::debug!("Actor Registry stopped");
     }
 }
 
@@ -126,8 +132,9 @@ impl<V> SystemService for VirtualActorRegistryActor<V>
 where
     V: VirtualActor,
 {
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name()))]
     fn service_started(&mut self, _ctx: &mut Context<Self>) {
-        println!("Service Registry for {} started", V::name());
+        tracing::debug!("Service Registry for {} tarted", V::name());
     }
 }
 
@@ -153,6 +160,7 @@ where
 {
     type Result = AtomicResponse<Self, Result<GetActorResult<V>, VirtualActorRegistryError>>;
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name(), virtual_message=stringify!(GetActor)))]
     fn handle(&mut self, msg: GetActor<V>, _ctx: &mut Context<Self>) -> Self::Result {
         AtomicResponse::new(self.get_or_create_actor(msg.id))
     }
@@ -176,9 +184,10 @@ where
 {
     type Result = Result<(), VirtualActorRegistryError>;
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name(), virtual_message=stringify!(SetFactory)))]
     fn handle(&mut self, msg: SetFactory<V>, _ctx: &mut Context<Self>) -> Self::Result {
         self.factory = Some(Arc::new(msg.factory));
-        println!("Factory for {} is set", V::name());
+        tracing::debug!("Factory for {} is set", V::name());
         Ok(())
     }
 }
@@ -201,18 +210,20 @@ where
 {
     type Result = ResponseActFuture<Self, ()>;
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name(), virtual_message=stringify!(ParkVirtualActor)))]
     fn handle(&mut self, msg: ParkVirtualActor<V>, _ctx: &mut Context<Self>) -> Self::Result {
         let addr_from_map = self.map.get(&msg.id).map(|a| a.to_owned());
         Box::pin(
             async move { Self::request_actor_to_stop(addr_from_map).await }
-                .into_actor(self) // converts future to ActorFuture
+                .into_actor(self)
+                .actor_instrument(tracing::Span::current())
                 .map(move |res, act, _ctx| {
                     match res {
                         Ok(_) => {
                             act.map.remove(&msg.id);
                         }
                         Err(e) => {
-                            println!("Unable to park actor {} {} {:?}", V::name(), msg.id, e);
+                            tracing::debug!("Unable to park actor {} {} {:?}", V::name(), msg.id, e);
                             HousekeepingActor::<V>::from_registry()
                                 .do_send(RefreshUsage::new(&msg.id)); // refresh usage, reschedule actor park
                         }
@@ -232,6 +243,7 @@ where
 {
     type Result = ResponseActFuture<Self, Result<(), VirtualActorRegistryError>>;
 
+    #[tracing::instrument(skip_all, fields(virtual_actor=V::name(), virtual_message=stringify!(StopAllActors)))]
     fn handle(&mut self, _msg: StopAllActors, _ctx: &mut Context<Self>) -> Self::Result {
         let actors: Vec<Addr<V>> = self.map.values().into_iter()
             .map(|a| a.clone())
@@ -259,15 +271,16 @@ where
                 }
                 return Err(VirtualActorRegistryError::StopAllErrors(vec_err))
              }
-                .into_actor(self) // converts future to ActorFuture
+                .into_actor(self)
+                .actor_instrument(tracing::Span::current()) // converts future to ActorFuture
                 .map(move |res, _act, _ctx| {
                     match res {
                         Ok(count) => {
-                            println!("Stopped {} actors {}", count, V::name());
+                            tracing::debug!("Stopped {} actors {}", count, V::name());
                             return Ok(())
                         }
                         Err(e) => {
-                            println!("Unable to stop all actors {} {:?}", V::name(), e);
+                            tracing::debug!("Unable to stop all actors {} {:?}", V::name(), e);
                             return Err(e);
                         }
                     }

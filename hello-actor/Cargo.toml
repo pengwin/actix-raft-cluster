@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 actix-web = "4"
 tracing-actix-web = "0.6"
-tracing = "0.1"
+
 actix = "0.13.0"
 actix-rt = "2.7.0"
 
@@ -23,3 +23,8 @@ async-trait = "0.1.58"
 
 parking_lot = { version = "0.12", features = ["hardware-lock-elision"] }
 tokio = { version = "1.21.2", features = ["fs", "rt", "rt-multi-thread", "macros"] }
+
+tracing = { version = "0.1.37", features = ["max_level_debug", "release_max_level_info"] }
+tracing-actix = "0.4.0"
+
+va_tracing = { path = "../va_tracing" }

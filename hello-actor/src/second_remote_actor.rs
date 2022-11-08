@@ -67,11 +67,11 @@ impl VirtualActor for SecondRemoteActor {
 impl Actor for SecondRemoteActor {
     type Context = Context<Self>;
     fn started(&mut self, _ctx: &mut Self::Context) {
-        println!("Started {}", self.id())
+        tracing::debug!("Started {}", self.id())
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
-        println!("Sopped {}", self.id())
+        tracing::debug!("Sopped {}", self.id())
     }
 }
 
@@ -91,7 +91,7 @@ impl Handler<RemoteRequest> for SecondRemoteActor {
     type Result = Result<String, String>;
 
     fn handle(&mut self, msg: RemoteRequest, _ctx: &mut Context<Self>) -> Self::Result {
-        println!("RemoteRequest {}", msg.message);
+        tracing::debug!("RemoteRequest {}", msg.message);
         if msg.message == "Error" {
             return Err("Error".to_owned());
         }

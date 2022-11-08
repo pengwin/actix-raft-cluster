@@ -9,5 +9,6 @@ members = [
     "actor-registry",
     "node-actor",
     "node-actor-server",
-    "hello-actor"
+    "hello-actor",
+    "va_tracing"
 ]

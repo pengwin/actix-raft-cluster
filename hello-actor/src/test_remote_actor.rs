@@ -68,11 +68,11 @@ impl VirtualActor for TestRemoteActor {
 impl Actor for TestRemoteActor {
     type Context = Context<Self>;
     fn started(&mut self, _ctx: &mut Self::Context) {
-        println!("Started {}", self.id())
+        tracing::debug!("Started {}", self.id())
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
-        println!("Sopped {}", self.id())
+        tracing::debug!("Sopped {}", self.id())
     }
 }
 
@@ -97,7 +97,7 @@ impl Handler<Ping> for TestRemoteActor {
     type Result = Result<Res, String>;
 
     fn handle(&mut self, msg: Ping, _ctx: &mut Context<Self>) -> Self::Result {
-        println!("ping {}", msg.message);
+        tracing::debug!("ping {}", msg.message);
         if msg.message == "Error" {
             return Err("Error".to_owned());
         }

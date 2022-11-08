@@ -25,6 +25,7 @@ impl<V: VirtualActorWithState, S: StateSerializer<V>> PersistentState<V, S> {
     pub async fn save(&self) -> Result<(), StatePersistenceError> {
         let vec = self.serializer.serialize_state(&self.state)?;
         self.persistence.save_state(self.id.clone(), vec.into()).await?;
+        tracing::debug!("State saved for {} with id {}", V::name(), self.id);
         Ok(())
     }
 
@@ -35,13 +36,18 @@ impl<V: VirtualActorWithState, S: StateSerializer<V>> PersistentState<V, S> {
                 let id = self.id.clone();
                 let state = vec.into();
                 let p = self.persistence.clone();
-                Box::pin(async move { p.save_state(id, state).await }.into_actor(act))
+                Box::pin(async move { 
+                    p.save_state(id.clone(), state).await?;
+                    tracing::debug!("State saved for {} with id {}", V::name(), id);
+                    Ok(())
+                }.into_actor(act))
             }
         }
     }
 
     pub async fn load(&mut self) -> Result<(), StatePersistenceError> {
         let vec = self.persistence.load_state(self.id.clone()).await?;
+        tracing::debug!("State loaded for {} with id {}", V::name(), self.id);
         let state = match vec {
             Some(s) => self.serializer.deserialize_state(&s)?,
             None => V::State::default(),
